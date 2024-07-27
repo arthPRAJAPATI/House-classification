@@ -3,6 +3,9 @@ import requests
 import sys
 import pandas as pd
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
 
 if __name__ == '__main__':
     if not os.path.exists('../Data'):
@@ -49,5 +52,23 @@ if __name__ == '__main__':
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_state=1,
                                                         stratify=X['Zip_loc'].values)
 
+    enc = (OneHotEncoder(drop='first'))
+    enc.fit(X_train[['Zip_area', 'Zip_loc', 'Room']])
+
+    X_train_transformed = pd.DataFrame(enc.transform(X_train[['Zip_area', 'Zip_loc', 'Room']]).toarray(),
+                                       index=X_train.index).add_prefix('enc')
+    X_test_transformed = pd.DataFrame(enc.transform(X_test[['Zip_area', 'Zip_loc', 'Room']]).toarray(),
+                                       index=X_test.index).add_prefix('enc')
+
+    X_train_final = X_train[['Area', 'Lon', 'Lat']].join(X_train_transformed)
+    X_test_final = X_test[['Area', 'Lon', 'Lat']].join(X_test_transformed)
+
+    clf = DecisionTreeClassifier(criterion='entropy', max_features=3, splitter='best', max_depth=6, min_samples_split=4, random_state=3)
+    clf.fit(X_train_final, y_train)
+
+    y_predict = clf.predict(X_test_final)
+
+    print(accuracy_score(y_test, y_predict))
+
     # Print the distribution of 'Zip_loc' values in the training set as a dictionary
-    print(X_train['Zip_loc'].value_counts().to_dict())
+    # print(X_train['Zip_loc'].value_counts().to_dict())
